@@ -37,11 +37,16 @@ class PairDataset(Dataset):
     def __len__(self):
         return len(self.pairs)
 
+    @staticmethod
+    def _plain(x):  # strip MONAI MetaTensor -> plain torch.Tensor (avoids MetaTensor codepaths)
+        x = x.as_tensor() if hasattr(x, "as_tensor") else torch.as_tensor(x)
+        return x.float()
+
     def __getitem__(self, i):
         qid, tid = self.pairs[i]
         q = self.tf({"image": self.id2vol[qid].clone()})["image"]
         t = self.tf({"image": self.id2vol[tid].clone()})["image"]
-        return torch.as_tensor(q).float(), torch.as_tensor(t).float()
+        return self._plain(q), self._plain(t)
 
 
 @torch.no_grad()

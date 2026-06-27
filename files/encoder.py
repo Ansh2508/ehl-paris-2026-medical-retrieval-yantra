@@ -19,19 +19,21 @@ class Encoder(nn.Module):
         bb = (backbone or cfg.backbone)
         d = int(cfg.embedding_dim)
 
-        if bb in _RESNETS:
-            import monai.networks.nets as nets
-            ctor = {"resnet10": nets.resnet10, "resnet18": nets.resnet18, "resnet34": nets.resnet34,
-                    "resnet50": nets.resnet50, "resnet3d": nets.resnet18}[bb]
-            # ResNet ends in fc(feat -> num_classes); we use it as the projection head -> embedding.
-            self.net = ctor(spatial_dims=3, n_input_channels=1, num_classes=d)
-            self.kind = "resnet"
-        else:
-            # swin / other -> fall back to a reliable resnet18 with a note (swin is Wilfred's track)
-            print(f"[encoder] backbone '{bb}' not built here; using resnet18 (swin = machine 2).")
-            import monai.networks.nets as nets
-            self.net = nets.resnet18(spatial_dims=3, n_input_channels=1, num_classes=d)
-            self.kind = "resnet"
+        import monai.networks.nets as nets
+        if bb not in _RESNETS:
+            # swin / other -> fall back to a reliable resnet18 (swin is Wilfred's track, machine 2)
+            print(f"[encoder] backbone '{bb}' not built here; using resnet18.")
+            bb = "resnet18"
+        ctor = {"resnet10": nets.resnet10, "resnet18": nets.resnet18, "resnet34": nets.resnet34,
+                "resnet50": nets.resnet50, "resnet3d": nets.resnet18}[bb]
+        # InstanceNorm (not BatchNorm): batch-size-independent, better for small-batch 3D medical,
+        # and avoids a BatchNorm kernel-compile failure on gfx942/ROCm. ResNet's fc = our head.
+        kw = dict(spatial_dims=3, n_input_channels=1, num_classes=d)
+        try:
+            self.net = ctor(norm="instance", **kw)
+        except TypeError:
+            self.net = ctor(**kw)
+        self.kind = "resnet"
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:   # x: [B,1,R,R,R]
         return F.normalize(self.net(x), dim=1)             # [B, d], unit-norm
@@ -41,4 +43,5 @@ class Encoder(nn.Module):
         """Single volume [1,R,R,R] -> L2-normed embedding [d]."""
         self.eval()
         dev = next(self.parameters()).device
-        return self.forward(volume.unsqueeze(0).to(dev).float())[0]
+        v = volume.as_tensor() if hasattr(volume, "as_tensor") else torch.as_tensor(volume)
+        return self.forward(v.unsqueeze(0).to(dev).float())[0]
