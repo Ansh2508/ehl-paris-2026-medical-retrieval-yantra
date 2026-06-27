@@ -29,12 +29,13 @@ class Encoder(nn.Module):
         # InstanceNorm (not BatchNorm): batch-size-independent, better for small-batch 3D medical,
         # and avoids a BatchNorm kernel-compile failure on gfx942/ROCm. ResNet's fc = our head.
         kw = dict(spatial_dims=3, n_input_channels=1, num_classes=d)
+        # GroupNorm: batch-size-independent (keep big batch for InfoNCE negatives), native kernels
+        # (ROCm's BatchNorm kernel fails to compile at batch 64; InstanceNorm3d hits a MIOpen
+        # stride bug). num_groups=8 divides all ResNet widths (64/128/256/512).
         try:
-            # affine=True so the norm layers have weight/bias (ResNet init sets them; InstanceNorm
-            # defaults to affine=False -> weight is None -> init crashes).
-            self.net = ctor(norm=("instance", {"affine": True}), **kw)
-        except TypeError:
-            self.net = ctor(**kw)
+            self.net = ctor(norm=("group", {"num_groups": 8, "affine": True}), **kw)
+        except Exception:
+            self.net = ctor(**kw)  # fall back to default BatchNorm
         self.kind = "resnet"
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:   # x: [B,1,R,R,R]
