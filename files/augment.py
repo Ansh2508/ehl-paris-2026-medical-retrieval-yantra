@@ -80,9 +80,10 @@ def train_transforms(cfg=CFG):
     """Domain randomization for the contrastive encoder. Light geometry (registration owns
     L2 rotation) + heavy MODALITY-GAP contrast randomization + simulated resection (L3).
     Apply INDEPENDENTLY to query and target."""
-    from monai.transforms import (Compose, RandAffined, RandFlipd, RandBiasFieldd,
+    from monai.transforms import (Compose, RandAffined, RandFlipd, ScaleIntensityd, RandBiasFieldd,
                                    RandAdjustContrastd, RandHistogramShiftd, RandScaleIntensityd,
-                                   RandShiftIntensityd, RandGaussianSmoothd, RandGaussianNoised)
+                                   RandShiftIntensityd, RandGaussianSmoothd, RandGaussianNoised,
+                                   NormalizeIntensityd)
     a3 = cfg.l3_aug
     light_rot = 10.0 * 3.14159 / 180.0
     return Compose([
@@ -90,6 +91,9 @@ def train_transforms(cfg=CFG):
         RandAffined(keys="image", prob=0.5, rotate_range=(light_rot,) * 3,
                     translate_range=(5,) * 3, scale_range=(0.1,) * 3, padding_mode="zeros"),
         RandFlipd(keys="image", prob=0.3, spatial_axis=0),
+        # rescale to [0,1] so the contrast augs (bias/gamma) operate on a POSITIVE domain
+        # (RandBiasField multiplies -> it blows up on signed z-scored data)
+        ScaleIntensityd(keys="image", minv=0.0, maxv=1.0),
         # --- MODALITY GAP: SynthSeg-style contrast randomization (the #1 lever) ---
         RandBiasFieldd(keys="image", prob=0.8, coeff_range=(0.0, a3["bias_field_coeff"])),
         RandHistogramShiftd(keys="image", prob=0.7, num_control_points=(8, 15)),  # random nonlinear remap
@@ -98,6 +102,8 @@ def train_transforms(cfg=CFG):
         RandShiftIntensityd(keys="image", prob=0.5, offsets=0.1),
         RandGaussianSmoothd(keys="image", prob=0.2, sigma_x=(0.5, 1.5), sigma_y=(0.5, 1.5), sigma_z=(0.5, 1.5)),
         RandGaussianNoised(keys="image", prob=0.3, std=0.03),
-        # --- L3 surgical tissue loss ---
+        # --- L3 surgical tissue loss (carve cavity -> 0 = background in [0,1]) ---
         _make_resection(prob=0.4, max_frac=0.16),
+        # re-standardize for the encoder (bounds the range whatever the contrast augs did)
+        NormalizeIntensityd(keys="image", nonzero=True, channel_wise=True),
     ])
