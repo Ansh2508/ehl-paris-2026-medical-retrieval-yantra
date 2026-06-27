@@ -19,6 +19,7 @@ from config import CFG
 import preprocess
 import oracle
 import mind
+import mutual_info
 import register
 import rerank
 from metrics import mrr
@@ -75,12 +76,17 @@ def main():
 
         Dm = mind.mind_score_matrix(qd, gd).numpy()         # MIND distance [Q,G]
         Sm = -Dm
+        Snmi = mutual_info.nmi_score_matrix(qd, gd, downsample=2).numpy()   # NMI similarity (entropy)
+        Smn = 0.5 * _rank_norm(Sm) + 0.5 * _rank_norm(Snmi)                 # MIND + NMI rank-fusion
         variants = {
             "MIND": rerank.greedy_rankings(Sm),
             "MIND+Hung": rerank.hungarian_rankings(Sm),
             "MIND+krecip": rerank.rankings_from_dist(
                 rerank.re_ranking(Dm, mind.mind_score_matrix(qd, qd).numpy(),
                                   mind.mind_score_matrix(gd, gd).numpy())),
+            "NMI": rerank.greedy_rankings(Snmi),
+            "MIND+NMI": rerank.greedy_rankings(Smn),
+            "MIND+NMI+Hung": rerank.hungarian_rankings(Smn),
         }
         if enc is not None:
             qe = torch.stack([enc.encode(v) for v in qd])
