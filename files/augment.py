@@ -83,7 +83,7 @@ def train_transforms(cfg=CFG):
     from monai.transforms import (Compose, RandAffined, RandFlipd, ScaleIntensityd, RandBiasFieldd,
                                    RandAdjustContrastd, RandHistogramShiftd, RandScaleIntensityd,
                                    RandShiftIntensityd, RandGaussianSmoothd, RandGaussianNoised,
-                                   NormalizeIntensityd)
+                                   ScaleIntensityRangePercentilesd, NormalizeIntensityd)
     a3 = cfg.l3_aug
     light_rot = 10.0 * 3.14159 / 180.0
     return Compose([
@@ -95,7 +95,7 @@ def train_transforms(cfg=CFG):
         # (RandBiasField multiplies -> it blows up on signed z-scored data)
         ScaleIntensityd(keys="image", minv=0.0, maxv=1.0),
         # --- MODALITY GAP: SynthSeg-style contrast randomization (the #1 lever) ---
-        RandBiasFieldd(keys="image", prob=0.8, coeff_range=(0.0, a3["bias_field_coeff"])),
+        RandBiasFieldd(keys="image", prob=0.8, coeff_range=(0.0, 0.2)),  # small: poly blows up at corners
         RandHistogramShiftd(keys="image", prob=0.7, num_control_points=(8, 15)),  # random nonlinear remap
         RandAdjustContrastd(keys="image", prob=0.7, gamma=a3["gamma"]),
         RandScaleIntensityd(keys="image", prob=0.5, factors=0.3),
@@ -104,6 +104,7 @@ def train_transforms(cfg=CFG):
         RandGaussianNoised(keys="image", prob=0.3, std=0.03),
         # --- L3 surgical tissue loss (carve cavity -> 0 = background in [0,1]) ---
         _make_resection(prob=0.4, max_frac=0.16),
-        # re-standardize for the encoder (bounds the range whatever the contrast augs did)
+        # robustly clip outliers (e.g. residual bias-field spikes) then z-score for the encoder
+        ScaleIntensityRangePercentilesd(keys="image", lower=0.5, upper=99.5, b_min=0.0, b_max=1.0, clip=True),
         NormalizeIntensityd(keys="image", nonzero=True, channel_wise=True),
     ])
