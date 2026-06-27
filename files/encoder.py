@@ -46,4 +46,4 @@ class Encoder(nn.Module):
         self.eval()
         dev = next(self.parameters()).device
         v = volume.as_tensor() if hasattr(volume, "as_tensor") else torch.as_tensor(volume)
-        return self.forward(v.unsqueeze(0).to(dev).float())[0]
+        return self.forward(v.unsqueeze(0).to(dev).float().contiguous())[0]

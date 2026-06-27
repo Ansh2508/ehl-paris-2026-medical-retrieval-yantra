@@ -38,9 +38,9 @@ class PairDataset(Dataset):
         return len(self.pairs)
 
     @staticmethod
-    def _plain(x):  # strip MONAI MetaTensor -> plain torch.Tensor (avoids MetaTensor codepaths)
+    def _plain(x):  # strip MetaTensor + make contiguous (MIOpen rejects non-contiguous/neg strides)
         x = x.as_tensor() if hasattr(x, "as_tensor") else torch.as_tensor(x)
-        return x.float()
+        return x.float().contiguous()
 
     def __getitem__(self, i):
         qid, tid = self.pairs[i]
