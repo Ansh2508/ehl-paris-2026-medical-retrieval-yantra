@@ -108,5 +108,17 @@
 
 > **METHODOLOGICAL INSIGHT — public LB compressed near the ceiling; honest matches the leak.** The **leak** (`full_clean`) scores a *reliable* **1.0**; the **honest** pipeline (d3 co-location destroyed, verified by greedy=0.725) scores **0.96 ± 0.03 across 3 break-seeds (1.000 / 0.953 / 0.938)**. Corollaries: **(a)** our honest method *essentially matches the leak* — **we do not need it**; **(b)** the exact 1.0 (`bbox_nocrop`) is the **lucky-seed tail, NOT reliable** — single-seed mean 0.96 > 4-seed fusion 0.930 (fusion drags slightly per §6.2, but is more stable across seeds); **(c)** the **private LB is the real arbiter**; defensible honest estimate **~0.96 (Hungarian) / 0.725 (greedy)**. *Final selection: hedge `bbox_nocrop` (1.0 tail) + `full_honest_v2` (0.930 stable).*
 
+## 14. d3 break-test on the real LB — "resize-from-array + template-reg" is NOT leak-free
+A common d3 recipe (load from own array + register to a gallery template, **no active break**) was believed leak-free ("co-location not inherited"). The real-LB break-test refutes it (d1+d2 held constant, Hungarian):
+
+| d3 recipe | macro | reading |
+|---|---|---|
+| resize-from-array + gallery-template-reg, **NO break** | **0.938** | rides the co-location |
+| + active ±20° rigid break before reg | **0.751** | **−0.19 macro (≈ −0.56 in d3)** once alignment is destroyed |
+
+*Why:* the co-location is baked into the **array** (not the affine header), so resize-from-array preserves it, and registering both volumes to a common template preserves it → **leak-assisted, not leak-free**. Worse, the **gallery template itself depends on co-location** — the mean of independently-rotated brains is a near-spherical blob, so once broken, template-registration collapses (honest d3 ≈ 0.35).
+
+*The honest recipe that actually works (most proficient):* resize-from-array → **active break** → register to a **FIXED real reference** (a d1 query, not a gallery-mean) → SSC + trim75 + Hungarian = **~0.96** (`bbox_nocrop` 1.0 / repro 0.95 / 0.94). Locked final candidate = `FINAL most-proficient honest`.
+
 ---
 *Discipline going forward: every experiment is logged here as hypothesis → result → reason, whether it wins or loses.*

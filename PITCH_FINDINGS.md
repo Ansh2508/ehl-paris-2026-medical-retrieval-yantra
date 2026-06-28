@@ -35,7 +35,7 @@ Training-free, deterministic cross-modal MRI retrieval: **register every brain t
 
 ## The three pitch assets
 1. **The method** — SSC + content-registration + trim. Training-free, deterministic, auditable (FDA/CE-credible). Per-level map above.
-2. **Integrity** — found the planted d3 leak, **measured it (1.0 → 0.26 when broken)**, refused it, re-earned 0.74 by content-registration. Provable, not asserted.
+2. **Integrity** — found the planted d3 leak and **measured its worth two independent ways**: the no-reg control (1.0 → 0.26) *and* a break-test (any resize-from-array recipe drops **0.938 → 0.751** when the co-location is destroyed). We refused it and **re-earn ~0.96 honestly** via active-break + fixed-reference re-registration. Provable, not asserted.
 3. **Rigor (the frontier map)** — `NEGATIVE_RESULTS.md`: ~22 techniques (8 classifiers incl. TabPFN, fusion, learned encoder, Bayesian, matrix-methods/Markov, GA, DP/DTW, NGF/NMI/shape/power-spectrum/radiomics) **all tested, all documented with why-we-tried-it → result → reason.** The bottleneck is the *content signal*, not the model. + **Bayesian calibration/abstention** as the deploy-time trust layer.
 
 ## Honest caveats (say them first)
