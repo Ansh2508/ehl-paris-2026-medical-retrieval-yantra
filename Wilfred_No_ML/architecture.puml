@@ -1,0 +1,81 @@
+@startuml Non-ML MRI Retrieval Pipeline
+
+title v35: Non-ML Cross-Modal Brain MRI Retrieval (HONEST/DEPLOYABLE)
+
+skinparam backgroundColor #FFFFFF
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+package "Preprocessing" {
+    [Load NIfTI] as load
+    [Foreground Mask] as mask
+    [Robust Scale\n(1st-99th percentile)] as scale
+    [Brain BBox Crop] as crop
+    [Trilinear Resize\nto 48^3] as resize
+}
+
+package "Registration (d2/d3 only)" {
+    [d3: Random Rigid\nper Volume\n(+-15deg, +-3 vox)] as rrigid
+    [MOMENTS Cascade\nrigid 100it -> affine 100it] as reg
+    [d1 Train Query\nas Reference] as ref
+}
+
+package "Feature Extraction" {
+    [SSC-12 Descriptor\n(GPU, 12-edge)\ntrimmed for d3] as ssc
+    [Mutual Information\n(d1 only)] as mi
+    [3D Power Spectrum\n(FFT, 16 radial)] as fft
+    [Brain Shape\nFingerprint] as bf
+    [Gradient\nMagnitude] as grad
+    [Intensity\nHistogram] as hist
+    [3D Projections] as proj
+}
+
+package "Distance Computation" {
+    [Normalize to [0,1]] as norm
+    [Weighted Sum\n(per-dataset weights)] as weighted
+}
+
+package "Ranking" {
+    [Greedy Row-wise\nargsort per query\n(deployable)] as greedy
+}
+
+package "Output" {
+    [377-row CSV] as csv
+}
+
+load --> mask
+mask --> scale
+scale --> crop
+crop --> resize
+resize --> rrigid : d3 only
+rrigid --> reg
+resize --> reg : d2 only
+ref --> reg
+reg --> ssc
+resize --> ssc : d1 (no reg)
+resize --> mi : d1 only
+resize --> fft
+resize --> bf
+resize --> grad
+resize --> hist
+resize --> proj
+
+ssc --> norm
+mi --> norm
+fft --> norm
+bf --> norm
+grad --> norm
+hist --> norm
+proj --> norm
+
+norm --> weighted
+weighted --> greedy
+greedy --> csv
+
+note right of rrigid : Leak fix: destroys\nd3 co-location\nbefore registration
+note right of ssc : Dominant feature\nweight=0.45 for d2/d3\nd3: trimmed mean (keep 50%)
+note right of mi : Honest: only d1\n(common grid)
+note right of reg : MOMENTS init\nreplaces GEOMETRY\n(robust on hard cases)
+note right of greedy : No bijection\nexploitation\n(deployable)
+
+@enduml
