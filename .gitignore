@@ -1,12 +1,38 @@
-# secrets — never commit
+# ---- secrets (NEVER commit) ----
 kaggle.json
 *.token
+*.key
 *_secret*
 .env
-# scratch / data / envs
-venv/
-__pycache__/
-*.pyc
+.env.*
+secrets.*
+**/credentials*
+
+# ---- data (large NIfTI volumes live on the MI300X, not in git) ----
+data/
 /shared-docker/data
+**/images/
 *.nii
 *.nii.gz
+
+# ---- caches / preprocessed tensors ----
+.cache/
+**/.cache/
+__pycache__/
+*.py[cod]
+*.pyc
+.ipynb_checkpoints/
+
+# ---- model checkpoints / outputs ----
+outputs/
+*.pt
+*.pth
+*.ckpt
+checkpoints/
+
+# ---- misc / OS ----
+*:Zone.Identifier
+.DS_Store
+*.log
+venv/
+.venv/
