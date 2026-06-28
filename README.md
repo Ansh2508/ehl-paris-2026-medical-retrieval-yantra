@@ -6,8 +6,64 @@ Your task is to build a cross-modal medical image retrieval system. For each que
 
 https://www.kaggle.com/t/b33ec3e76c3d4e16a6b56852470b3ebf
 
+## Our Solution (v36 — Honest/Deployable, MRR 0.723)
 
-## Modalities
+**Team Yantra | Wilfred Doré | June 2026**
+
+A 100% non-ML, 0-training, deterministic pipeline for cross-modal (T1→T2)
+brain MRI retrieval. The canonical submission script is
+[`v36_final.py`](v36_final.py).
+
+### Pipeline
+
+1. **Preprocessing**: foreground mask → robust percentile scaling → brain
+   bbox crop → trilinear resize to 48³.
+2. **Registration** (d2/d3 only): d3 volumes first receive an independent
+   random rigid transform (±15°, ±3 voxels) to destroy the dataset's
+   co-location leak, then a MOMENTS-init rigid→affine cascade (200 iters
+   total, shrink [8,4,2,1]) aligns each volume to a shared d1 reference.
+3. **Feature extraction**: SSC-12 self-similarity descriptor (GPU), mutual
+   information (d1 only), FFT power spectrum, brain shape fingerprint,
+   gradient magnitude, intensity histogram, 3D projections.
+4. **Distance fusion**: per-feature normalization to [0,1] + weighted sum
+   with per-dataset weights (SSC-dominant for d2/d3).
+5. **Trimmed SSC** (d3 only): keep best 50% of per-voxel residuals for
+   resection robustness.
+6. **Ranking**: greedy row-wise argsort (deployable, no Hungarian bijection
+   exploitation).
+
+### Honesty Guarantees
+
+- **No co-location leak**: d3 random rigid per volume before registration.
+- **No eval-bijection exploitation**: greedy ranking instead of Hungarian.
+- **Deployable**: each query ranked independently — valid for single-query
+  retrieval in clinical deployment.
+
+### Results
+
+| Version | MRR | Notes |
+|---------|-----|-------|
+| v33 | 0.928 | Leaky (d3 co-location + Hungarian bijection) |
+| v34 | 0.686 | Honest but under-optimized (SSC-only d2/d3) |
+| v35 | 0.707 | + restored features + tuned d3 params |
+| **v36** | **0.723** | **+ MI post-reg d2/d3 + reduced rigid + less trim** |
+
+### Acknowledgments
+
+Developed with the assistance of GLM-5.2 (Z.AI), an open-source large
+language model. Technical review by Gowshigan R. and Claude (Anthropic).
+
+### Key Files
+
+- [`v36_final.py`](v36_final.py) — canonical submission script
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — full architecture documentation
+- [`architecture.puml`](architecture.puml) — PlantUML pipeline diagram
+- [`Experiment_Log.md`](Experiment_Log.md) — experiment history and findings
+- [`CHANGELOG.md`](CHANGELOG.md) — version history
+- [`paper_draft.pdf`](paper_draft.pdf) — research paper draft
+- [`slides_beamer.pdf`](slides_beamer.pdf) — presentation slides
+
+---## Modalities
 
 - Query: T1 post-contrast MRI
 - Target: T2 MRI

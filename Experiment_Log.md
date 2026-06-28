@@ -15,6 +15,33 @@
 | v7 | 0.59303 | MIND + brain fingerprint, image-heavy weights for d2/d3 | 0.848 | ~3 min (AMD 20-core) |
 | **v8** | **0.63976** | **48³ + Mutual Information (d1 only) + MIND + brain fingerprint** | **0.903** | ~5 min (AMD 20-core) |
 
+### Integrity Audit & Honest Version (June 28)
+
+| Version | Public Score | Key Change |
+|---------|-------------|------------|
+| v26 | 0.839 | + SSC-12 + distance normalization |
+| v29 | 0.881 | + higher SSC weight (0.50 for d2/d3) |
+| v31 | 0.923 | + d1 query as reg ref + shrink [8,4,2,1] |
+| v33 | 0.928 | + Hungarian + d3 registration (**LEAKY**) |
+| v34 | 0.686 | Honest: random rigid + trim + cascade + greedy + SSC-only |
+| v35 | 0.707 | + restored features + tuned d3 params |
+| **v36** | **0.723** | **+ MI post-reg d2/d3 + reduced rigid + less trim** |
+
+**v33 integrity issues identified:**
+1. d3 co-location leak: query/target pairs are co-located in the dataset;
+   registering both to the same d1 ref preserves the co-location rather than
+   destroying it. The SSC distance rides this leak, not genuine anatomy.
+2. Hungarian assignment exploits the evaluation's 1-to-1 bijection — not
+   deployable for single-query retrieval.
+
+**v34/v35 fixes:**
+- Independent random rigid per d3 volume before registration (destroys leak)
+- Trimmed SSC mean for d3 (resection-robust)
+- MOMENTS rigid→affine cascade (200 iters, replaces 40-iter GEOMETRY affine)
+- Trilinear resize (anti-aliased, replaces nearest-neighbour)
+- Greedy row-wise ranking (deployable, replaces Hungarian)
+- v35 restores useful features (image, mask, brain, hist) that v34 dropped
+
 ## Key Findings
 
 ### 1. Mutual Information is the Gold Standard for d1

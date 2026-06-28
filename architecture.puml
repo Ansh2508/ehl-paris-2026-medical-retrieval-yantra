@@ -1,6 +1,6 @@
 @startuml Non-ML MRI Retrieval Pipeline
 
-title v33: Non-ML Cross-Modal Brain MRI Retrieval (MRR 0.928)
+title v35: Non-ML Cross-Modal Brain MRI Retrieval (HONEST/DEPLOYABLE)
 
 skinparam backgroundColor #FFFFFF
 skinparam componentStyle rectangle
@@ -11,16 +11,17 @@ package "Preprocessing" {
     [Foreground Mask] as mask
     [Robust Scale\n(1st-99th percentile)] as scale
     [Brain BBox Crop] as crop
-    [Resize to 48^3] as resize
+    [Trilinear Resize\nto 48^3] as resize
 }
 
 package "Registration (d2/d3 only)" {
-    [SimpleITK\nAffine + Mattes MI] as reg
+    [d3: Random Rigid\nper Volume\n(+-15deg, +-3 vox)] as rrigid
+    [MOMENTS Cascade\nrigid 100it -> affine 100it] as reg
     [d1 Train Query\nas Reference] as ref
 }
 
 package "Feature Extraction" {
-    [SSC-12 Descriptor\n(GPU, 12-edge)] as ssc
+    [SSC-12 Descriptor\n(GPU, 12-edge)\ntrimmed for d3] as ssc
     [Mutual Information\n(d1 only)] as mi
     [3D Power Spectrum\n(FFT, 16 radial)] as fft
     [Brain Shape\nFingerprint] as bf
@@ -34,8 +35,8 @@ package "Distance Computation" {
     [Weighted Sum\n(per-dataset weights)] as weighted
 }
 
-package "Assignment" {
-    [Hungarian Algorithm\n(scipy.optimize)] as hungarian
+package "Ranking" {
+    [Greedy Row-wise\nargsort per query\n(deployable)] as greedy
 }
 
 package "Output" {
@@ -46,7 +47,9 @@ load --> mask
 mask --> scale
 scale --> crop
 crop --> resize
-resize --> reg : d2/d3 only
+resize --> rrigid : d3 only
+rrigid --> reg
+resize --> reg : d2 only
 ref --> reg
 reg --> ssc
 resize --> ssc : d1 (no reg)
@@ -66,12 +69,13 @@ hist --> norm
 proj --> norm
 
 norm --> weighted
-weighted --> hungarian
-hungarian --> csv
+weighted --> greedy
+greedy --> csv
 
-note right of ssc : Dominant feature\nweight=0.50 for d2/d3
+note right of rrigid : Leak fix: destroys\nd3 co-location\nbefore registration
+note right of ssc : Dominant feature\nweight=0.45 for d2/d3\nd3: trimmed mean (keep 50%)
 note right of mi : Honest: only d1\n(common grid)
-note right of norm : Key innovation:\nscale calibration
-note right of hungarian : Exact 1-to-1\nbijection assignment
+note right of reg : MOMENTS init\nreplaces GEOMETRY\n(robust on hard cases)
+note right of greedy : No bijection\nexploitation\n(deployable)
 
 @enduml

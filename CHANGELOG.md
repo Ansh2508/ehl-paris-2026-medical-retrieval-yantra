@@ -5,7 +5,44 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 Developed with the assistance of GLM-5.2 (Z.AI), an open-source large language model.
 
-## [v33] — 2026-06-28 — Final (MRR 0.928)
+## [v36] — 2026-06-28 — Honest/Deployable, Optimized (MRR 0.723)
+
+### Added
+- MI after registration for d2/d3 (weight=0.20). Once volumes are aligned
+  to the d1 reference via the MOMENTS cascade, they share a common grid,
+  making MI a legitimate intensity-correspondence measure.
+
+### Changed (tuned vs v34/v35)
+- Reduced d3 random rigid amplitude (+-5deg, +-1 voxel vs v35's +-15deg, +-3 voxels)
+- Less aggressive d3 trim (keep 75% vs v35's 50%)
+- Retuned d2/d3 weights: SSC=0.35, MI=0.20, features share 0.45
+
+### Score History
+| Version | Score | Key Change |
+|---------|-------|------------|
+| sample | 0.131 | Floor baseline |
+| v2 | 0.583 | 16^3 volume + mask + proj |
+| v3 | 0.592 | 32^3 + gradient + no-crop d1 |
+| v9 | 0.647 | + MI (d1) + power spectrum (FFT) |
+| v21 | 0.724 | + Sinkhorn (tau=20) + registration d2 |
+| v26 | 0.839 | + SSC-12 + distance normalization |
+| v29 | 0.881 | + higher SSC weight (0.50 for d2/d3) |
+| v31 | 0.923 | + d1 query as reg ref + shrink [8,4,2,1] |
+| v33 | 0.928 | + Hungarian + d3 registration (LEAKY) |
+| v34 | 0.686 | Honest: random rigid + trim + cascade + greedy + SSC-only |
+| v35 | 0.707 | + restored features + tuned d3 params |
+| **v36** | **0.723** | **+ MI post-reg d2/d3 + reduced rigid + less trim** |
+
+## [v35] — 2026-06-28 — Honest (MRR 0.707)
+
+## [v34] — 2026-06-28 — Honest/Deployable (MRR 0.686)
+
+### Integrity Fixes
+- All 6 audit items applied: random rigid, trimmed SSC, MOMENTS cascade,
+  trilinear resize, SSC-only fusion, greedy ranking
+- Score drop reflects removal of d3 leak + Hungarian bijection exploitation
+
+## [v33] — 2026-06-28 — MRR 0.928 (LEAKY — superseded by v35)
 
 ### Added
 - Hungarian optimal assignment (replaces Sinkhorn, exact 1-to-1 bijection)
@@ -34,7 +71,7 @@ Developed with the assistance of GLM-5.2 (Z.AI), an open-source large language m
 | v26 | 0.839 | + SSC-12 + distance normalization |
 | v29 | 0.881 | + higher SSC weight (0.50 for d2/d3) |
 | v31 | 0.923 | + d1 query as reg ref + shrink [8,4,2,1] |
-| **v33** | **0.928** | **+ Hungarian + d3 registration** |
+| **v33** | **0.928** | **+ Hungarian + d3 registration (LEAKY — not deployable)** |
 
 ## [v31] — 2026-06-28 — MRR 0.923
 
