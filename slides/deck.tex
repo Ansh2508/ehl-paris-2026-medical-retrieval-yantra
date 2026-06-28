@@ -124,9 +124,9 @@
     \toprule
     \textbf{Setting} & \textbf{MRR} \\
     \midrule
-    Leak (\emph{declined}) & 1.000 \\
-    \textbf{\color{ok}Honest, full (with assignment)} & \textbf{\color{ok}0.930} \\
-    Honest, deployable (single-query) & 0.725 \\
+    Leak (\emph{found \& declined}) & 1.000 \\
+    \textbf{\color{ok}Content / single-query — the task} & \textbf{\color{ok}0.725} \\
+    \quad + bipartite assignment (allowed, disclosed) & 0.930 \\
     \midrule
     dataset1 / dataset2 / dataset3 (honest) & 1.0 / strong / 0.74 \\
     \bottomrule
@@ -134,9 +134,10 @@
   \end{center}
   \vfill
   \footnotesize
-  \textbf{Honest caveat (we say it first):} the $0.930\!-\!0.725=\!+0.205$ gap is the Hungarian
-  \emph{assignment} exploiting the eval bijection — a disclosed \emph{batch} optimization, not
-  deployable single-query anatomy. The deployable number is \textbf{0.725}.
+  \textbf{Both scores reported, per organizer guidance.} Bipartite (Hungarian) matching is allowed
+  but \emph{besides the point of the challenge} — so the method's merit is the \textbf{content}
+  number \textbf{0.725} (true single-query re-ID); the $+0.205$ bijection lift to \textbf{0.930} is
+  disclosed, not hidden.
 \end{frame}
 
 % ---------------------------------------------------------------- RIGOR
