@@ -96,5 +96,17 @@
 
 > **EXPLORATION COMPLETE (~22 techniques).** The honest deployable frontier is fixed: **SSC-12 + content-registration (rigid→affine cascade) + per-level trim + greedy (deployable) / Sinkhorn-or-Hungarian (batch) + Bayesian calibration (trust).** Everything else — 8 classifiers, fusion, learned encoder, NGF/NMI/shape/power-spectrum/radiomics, multi-scale, deformable-as-scorer, low-rank, DTW, GA(redundant) — is documented above with *why we tried it → result → reason*. The bottleneck is proven to be the **content signal**, not the model/search/matrix method.
 
+## 13. Crop-to-brain-bbox (from Wilfred's branch) + the public-LB-saturation insight (MEASURED on real LB)
+*Why:* Wilfred's `Experiment_Log.md` **and** our own oracle A/B both said crop-to-brain-bbox lifts d2/d3 (oracle: d2 Hungarian 0.921→**1.000**, d3 greedy 0.318→0.404). The one genuine untested lever from his branch.
+
+| Real-LB A/B (matched pipeline, single-seed honest d3, Hungarian) | Public MRR | Verdict |
+|---|---|---|
+| no-crop baseline | **1.00000** | — |
+| + bbox-crop (d2/d3) | **0.76373** | ❌ **bbox HURTS −0.236** |
+
+*Why it failed:* (i) the no-crop baseline **already saturates** the public pool (1.0) → zero headroom; (ii) our crop (`>0.05` mask bbox) likely clips/misaligns on real volumes. **Reaffirms the keystone lesson (REPORT §2): the oracle is a proxy — validate every large lever on the real LB.**
+
+> **METHODOLOGICAL INSIGHT — the public LB is SATURATED.** Both the **leak** version (`full_clean`) and the **honest single-seed** version (d3 co-location destroyed, verified by greedy=0.725) score **1.00000**. Corollaries: **(a)** our honest method matches the leak's public score *legitimately* — **we do not need the leak**; **(b)** single-seed (1.0) **>** 4-seed fusion (`full_honest_v2`, 0.930) → confirms rank-fusion drags (§6.2); the config to lock is **single-seed, no-crop, Hungarian**; **(c)** public 1.0 is non-discriminative → the **private LB is the real arbiter**; defensible honest estimate ~0.93 (Hungarian) / 0.725 (greedy, judges-disallow case).
+
 ---
 *Discipline going forward: every experiment is logged here as hypothesis → result → reason, whether it wins or loses.*

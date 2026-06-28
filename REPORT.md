@@ -144,6 +144,19 @@ Oracle MRR unless noted "LB". ✅ adopted · ❌ benched · 🔄 verdict flipped
 | multi-scale SSC (σ=1+2) | ❌ | loses to single-scale at every trim |
 | InfoNCE 3D contrastive encoder | ❌ never beat MIND | tiny data (~180 pairs) → overfits |
 
+### 5.6 Experiment tracking — the learned-encoder evidence (W&B `jw4t3jnf`)
+The single experiment that *needed* the GPU — an InfoNCE 3D contrastive encoder (GroupNorm, heavy L2/L3 augmentation, big-batch on the MI300X) — was tracked on **Weights & Biases** (entity `gowshigan-upec`, project `ehl-mri-retrieval`, run `jw4t3jnf`). The curves are the decisive evidence for the **no-ML** decision:
+
+| Tracked metric | Trajectory | Reading |
+|---|---|---|
+| training loss | **4.16 → 1.7** (kept falling) | the encoder *is* learning to fit the ~180 pairs |
+| retrieval MRR d1 | 0.25 → **0.78** | … but never reaches the common-grid SSC ceiling (~1.0) |
+| retrieval MRR d2 | 0.08 → **0.28** | far below affine-cascade + SSC (~0.81) |
+| retrieval MRR d3 | 0.12 → **0.27** | barely moves; loses to content-registration + trim (~0.58) |
+| **mean MRR** | → **0.44** | **< 0.80 training-free** at every level |
+
+**The loss-down / MRR-flat divergence is textbook small-data overfitting:** with ~180 pairs a learned embedding memorises rather than generalising, while a zero-parameter structural descriptor + explicit registration wins outright. This is *why* the frozen pipeline carries no learned component — and the W&B run is the auditable proof, not an assertion.
+
 ---
 
 ## 6. Results
