@@ -39,12 +39,13 @@ def ssc_field(vol, s=1.0):
 def _sitk(arr): return sitk.Cast(sitk.GetImageFromArray(arr), sitk.sitkFloat32)
 
 def _affine_to(fixed_img, moving_arr, iters):   # same registration that produced our 0.934
+    sitk.ProcessObject.SetGlobalDefaultNumberOfThreads(1)  # deterministic: pin thread count
     m = _sitk(moving_arr)
     rinit = sitk.CenteredTransformInitializer(fixed_img, m, sitk.Euler3DTransform(),
         sitk.CenteredTransformInitializerFilter.GEOMETRY)
     R1 = sitk.ImageRegistrationMethod()
     R1.SetMetricAsMattesMutualInformation(numberOfHistogramBins=32)
-    R1.SetMetricSamplingStrategy(R1.RANDOM); R1.SetMetricSamplingPercentage(0.1)
+    R1.SetMetricSamplingStrategy(R1.RANDOM); R1.SetMetricSamplingPercentage(0.1, seed=42)  # fixed seed -> deterministic
     R1.SetInterpolator(sitk.sitkLinear)
     R1.SetOptimizerAsRegularStepGradientDescent(learningRate=1.0, minStep=1e-4, numberOfIterations=60)
     R1.SetOptimizerScalesFromPhysicalShift()
@@ -56,7 +57,7 @@ def _affine_to(fixed_img, moving_arr, iters):   # same registration that produce
     R2 = sitk.ImageRegistrationMethod()
     R2.SetMovingInitialTransform(rigid_t); R2.SetInitialTransform(aff, inPlace=True)
     R2.SetMetricAsMattesMutualInformation(numberOfHistogramBins=32)
-    R2.SetMetricSamplingStrategy(R2.RANDOM); R2.SetMetricSamplingPercentage(0.1)
+    R2.SetMetricSamplingStrategy(R2.RANDOM); R2.SetMetricSamplingPercentage(0.1, seed=42)  # fixed seed -> deterministic
     R2.SetInterpolator(sitk.sitkLinear)
     R2.SetOptimizerAsRegularStepGradientDescent(learningRate=0.5, minStep=1e-4, numberOfIterations=iters)
     R2.SetOptimizerScalesFromPhysicalShift()
