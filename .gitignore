@@ -1,0 +1,12 @@
+# secrets — never commit
+kaggle.json
+*.token
+*_secret*
+.env
+# scratch / data / envs
+venv/
+__pycache__/
+*.pyc
+/shared-docker/data
+*.nii
+*.nii.gz
