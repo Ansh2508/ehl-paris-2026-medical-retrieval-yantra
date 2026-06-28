@@ -1,4 +1,16 @@
-from __future__ import annotations
+"""
+Pure Mathematical Feature Engineering for Cross-Modal Brain MRI Retrieval.
+No machine learning, no training, no GPU required.
+
+Features: Mutual Information, 3D Power Spectrum (FFT), MIND descriptor,
+brain shape fingerprint, hemispheric asymmetry, multi-resolution LOD,
+gradient magnitude, intensity histogram, projections, metadata.
+
+Score: MRR 0.735 on public leaderboard (EHL Paris 2026).
+
+Author: Wilfred Dore (wilfred.dore@telecom-paristech.org)
+Developed with the assistance of GLM-5.2 (Z.AI), an open-source large language model.
+"""
 
 import csv
 import json
