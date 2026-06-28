@@ -18,6 +18,7 @@ import torch
 from config import CFG
 import preprocess
 import mind
+import rerank
 import submit
 
 
@@ -32,6 +33,8 @@ def main():
     ap.add_argument("--resolution", type=int, default=CFG.resolution)
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--no-reg-d2", action="store_true", help="disable dataset2 registration")
+    ap.add_argument("--rerank", choices=["none", "hungarian"], default="hungarian",
+                    help="hungarian = bijection rerank (the champion); needs a square N=N split")
     args = ap.parse_args()
 
     CFG.data_root = Path(args.data_root)
@@ -67,11 +70,16 @@ def main():
         do_reg = (ds == "dataset2") and not args.no_reg_d2
         qv = prep([p for _, p in q], do_reg)
         gv = prep([p for _, p in g], do_reg)
-        D = mind.mind_score_matrix(qv, gv)                  # [Q,G], lower = more similar
+        D = mind.mind_score_matrix(qv, gv).numpy()          # [Q,G], lower = more similar
         gids = [tid for tid, _ in g]
-        for i, (qid, _) in enumerate(q):
-            order = torch.argsort(D[i]).tolist()
-            rows.append((qid, [gids[j] for j in order]))
+        if args.rerank == "hungarian":
+            ranks = rerank.hungarian_rankings(-D)           # bijection assignment on similarity
+            for i, (qid, _) in enumerate(q):
+                rows.append((qid, [gids[j] for j in ranks[i]]))
+        else:
+            import numpy as np
+            for i, (qid, _) in enumerate(q):
+                rows.append((qid, [gids[j] for j in np.argsort(D[i])]))
         print(f"  {ds}/{split}: {len(q)}q x {len(g)}g (reg={do_reg})  {time.time() - t:.1f}s")
 
     submit.write_submission(rows, args.out)
